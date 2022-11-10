@@ -5,17 +5,20 @@
 package frc.robot.subsystems;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
 import edu.wpi.first.math.Matrix;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N2;
-import edu.wpi.first.wpilibj.drive.Vector2d;
+import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.motorcontrol.MotorControllerGroup;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+
 import frc.robot.Constants;
 
 public class DriveSystem extends SubsystemBase {
@@ -54,7 +57,7 @@ public class DriveSystem extends SubsystemBase {
    * @param y -1 to 1
    * @param theta -1 to 1
    */  
-  public void speedsToWheelVectors(double x, double y, double theta) {
+  public List<Matrix<N2, N1>> speedsToWheelVectors(double x, double y, double theta) {
     // input vectors
     Matrix<N2, N1> inputs = new Matrix<>(N2.instance, N1.instance);
     
@@ -86,12 +89,66 @@ public class DriveSystem extends SubsystemBase {
     frontRight.plus(inputs);
     backLeft.plus(inputs);
     backRight.plus(inputs);
+
+    List<Matrix<N2, N1>> vectors = new ArrayList<>(); // TODO
+    vectors.add(frontLeft);
+    vectors.add(frontRight);
+    vectors.add(backLeft);
+    vectors.add(backRight);
+
+    return vectors;
   }
 
-  public List<Matrix<N2, N1>> normalize(List<Matrix<N2, N1>> wheelVectors) {
-    Math.max
+  public List<Matrix<N2, N1>> normalize(List<Matrix<N2, N1>> vectors) {
+    List<Double> velocities = new ArrayList<>();
+    for (Matrix<N2, N1> vec : vectors) {
+      // extract velocities to separate list
+      velocities.add(vec.get(0, 0));
+    }
 
-    // TODO
+    // find the max absolute value of velocity for all the wheels
+    double maxVel = Collections.max(
+      velocities
+      .stream()
+      .map(Math::abs)
+      .collect(Collectors.toList())
+    );
+
+    if (maxVel > 1) {
+      // don't normalize if max value was within bounds already
+      velocities = 
+        velocities
+        .stream()
+        .map(v -> v / maxVel) // divide each by max
+        .collect(Collectors.toList()); // put back into list
+    }
+
+    List<Matrix<N2, N1>> normalizedVelocities = new ArrayList<>();
+    for (int i = 0; i < velocities.size(); i++) {
+      // put velocities back into matrices
+      var vector = vectors.get(i).copy();
+      vector.set(0, 0, velocities.get(i));
+
+      normalizedVelocities.add(vector);
+    }
+
+    return normalizedVelocities;
+  }
+
+  public List<Matrix<N2, N1>> optimize(List<Matrix<N2, N1>> prev, List<Matrix<N2, N1>> curr) {
+    List<Double> deltas = new ArrayList<>();
+    
+    // find deltas for all angles
+    for (int i = 0; i < prev.size(); i++) {
+      double prevAngle = prev.get(i).get(2, 1);
+      double currAngle = curr.get(i).get(2, 1);
+
+      double delta = currAngle - prevAngle;
+      deltas.add(delta);
+    }
+
+    
+
     return new ArrayList<>();
   }
 
