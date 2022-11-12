@@ -71,10 +71,10 @@ public class DriveSystem extends SubsystemBase {
     backRightRotate = new CANSparkMax(BACK_RIGHT_ROTATE, MotorType.kBrushless);
 
     // modules
-    frontLeft = new SwerveModule(frontLeftDrive, frontLeftRotate);
-    frontRight = new SwerveModule(frontRightDrive, frontRightRotate);
-    backLeft = new SwerveModule(backLeftDrive, backLeftRotate);
-    backRight = new SwerveModule(backRightDrive, backRightRotate);
+    frontLeft = new SwerveModule(frontLeftDrive, frontLeftRotate, "front left");
+    frontRight = new SwerveModule(frontRightDrive, frontRightRotate, "front right");
+    backLeft = new SwerveModule(backLeftDrive, backLeftRotate, "back left");
+    backRight = new SwerveModule(backRightDrive, backRightRotate, "back right");
     
     // gyro
     gyro = new AHRS();
@@ -122,7 +122,21 @@ public class DriveSystem extends SubsystemBase {
     SwerveModuleState[] states = kinematics.toSwerveModuleStates(speeds);
     SwerveDriveKinematics.desaturateWheelSpeeds(states, 0); // TODO
 
-    // drive modules
+    // current module states
+    SwerveModuleState[] currentStates = new SwerveModuleState[] {
+      frontLeft.state(),
+      frontRight.state(),
+      backLeft.state(),
+      backRight.state()
+    };
+
+    // optimize each module based on its current and next states
+    for (int i = 0; i < states.length; i++) {
+      Rotation2d currentAngle = currentStates[i].angle;
+      SwerveModuleState.optimize(states[i], currentAngle);
+    }
+
+    // drive modules from optimized states
     frontLeft.set(states[0]);
     frontRight.set(states[1]);
     backLeft.set(states[2]);
@@ -145,6 +159,7 @@ public class DriveSystem extends SubsystemBase {
 
   @Override
   public void initSendable(SendableBuilder builder) {
+    builder.setSmartDashboardType("Drive System");
     builder.addBooleanProperty("Field oriented", () -> this.fieldOriented, null);
   }
 }
