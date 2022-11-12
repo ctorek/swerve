@@ -9,17 +9,24 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.kauailabs.navx.frc.AHRS;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
+import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N2;
-import edu.wpi.first.wpilibj.drive.DifferentialDrive;
-import edu.wpi.first.wpilibj.motorcontrol.MotorControllerGroup;
+import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-import frc.robot.Constants;
+import static frc.robot.Constants.*;
 
 public class DriveSystem extends SubsystemBase {
 
@@ -35,125 +42,109 @@ public class DriveSystem extends SubsystemBase {
   private final CANSparkMax backLeftRotate;
   private final CANSparkMax backRightRotate;
 
+  // module
+  private final SwerveModule frontLeft;
+  private final SwerveModule frontRight;
+  private final SwerveModule backLeft;
+  private final SwerveModule backRight;
+
+  // gyro
+  private final AHRS gyro;
+
+  private final SwerveDriveKinematics kinematics;
+  private final SwerveDriveOdometry odometry;
+
+  private boolean fieldOriented;
+
   /** Creates a new DriveSystem. */
   public DriveSystem() {
     // drive
-    frontLeftDrive = new CANSparkMax(Constants.FRONT_LEFT_DRIVE, MotorType.kBrushless);
-    frontRightDrive = new CANSparkMax(Constants.FRONT_RIGHT_DRIVE, MotorType.kBrushless);
-    backLeftDrive = new CANSparkMax(Constants.BACK_LEFT_DRIVE, MotorType.kBrushless);
-    backRightDrive = new CANSparkMax(Constants.BACK_RIGHT_DRIVE, MotorType.kBrushless);
+    frontLeftDrive = new CANSparkMax(FRONT_LEFT_DRIVE, MotorType.kBrushless);
+    frontRightDrive = new CANSparkMax(FRONT_RIGHT_DRIVE, MotorType.kBrushless);
+    backLeftDrive = new CANSparkMax(BACK_LEFT_DRIVE, MotorType.kBrushless);
+    backRightDrive = new CANSparkMax(BACK_RIGHT_DRIVE, MotorType.kBrushless);
 
     // rotate
-    frontLeftRotate = new CANSparkMax(Constants.FRONT_LEFT_ROTATE, MotorType.kBrushless);
-    frontRightRotate = new CANSparkMax(Constants.FRONT_RIGHT_ROTATE, MotorType.kBrushless);
-    backLeftRotate = new CANSparkMax(Constants.BACK_LEFT_ROTATE, MotorType.kBrushless);
-    backRightRotate = new CANSparkMax(Constants.BACK_RIGHT_ROTATE, MotorType.kBrushless);
+    frontLeftRotate = new CANSparkMax(FRONT_LEFT_ROTATE, MotorType.kBrushless);
+    frontRightRotate = new CANSparkMax(FRONT_RIGHT_ROTATE, MotorType.kBrushless);
+    backLeftRotate = new CANSparkMax(BACK_LEFT_ROTATE, MotorType.kBrushless);
+    backRightRotate = new CANSparkMax(BACK_RIGHT_ROTATE, MotorType.kBrushless);
+
+    // modules
+    frontLeft = new SwerveModule(frontLeftDrive, frontLeftRotate);
+    frontRight = new SwerveModule(frontRightDrive, frontRightRotate);
+    backLeft = new SwerveModule(backLeftDrive, backLeftRotate);
+    backRight = new SwerveModule(backRightDrive, backRightRotate);
+    
+    // gyro
+    gyro = new AHRS();
+
+    kinematics = new SwerveDriveKinematics(
+      new Translation2d(MODULE_DIST, MODULE_DIST), // front left
+      new Translation2d(MODULE_DIST, -MODULE_DIST), // front right
+      new Translation2d(-MODULE_DIST, MODULE_DIST), // back left
+      new Translation2d(-MODULE_DIST, -MODULE_DIST) // back right
+    );
+
+    odometry = new SwerveDriveOdometry(
+      kinematics, 
+      Rotation2d.fromDegrees(gyro.getAngle())
+    );
   }
 
   /**
-   * convert wheel speeds to vectors
+   * drive the robot
    * 
-   * @param x -1 to 1
-   * @param y -1 to 1
-   * @param theta -1 to 1
-   */  
-  public List<Matrix<N2, N1>> speedsToWheelVectors(double x, double y, double theta) {
-    // input vectors
-    Matrix<N2, N1> inputs = new Matrix<>(N2.instance, N1.instance);
+   * @param x m/s
+   * @param y m/s
+   * @param theta rad/s
+   */
+  public void drive(double x, double y, double theta) {
+    ChassisSpeeds speeds;
     
-    // rotation vectors
-    Matrix<N2, N1> frontLeft = new Matrix<>(N2.instance, N1.instance);
-    Matrix<N2, N1> frontRight = new Matrix<>(N2.instance, N1.instance);
-    Matrix<N2, N1> backLeft = new Matrix<>(N2.instance, N1.instance);
-    Matrix<N2, N1> backRight = new Matrix<>(N2.instance, N1.instance);
-
-    frontLeft.set(1, 1, 0); // TODO
-    frontLeft.set(2, 1, 0); // TODO
-
-    frontRight.set(1, 1, 0); // TODO
-    frontRight.set(2, 1, 0); // TODO
-
-    backLeft.set(1, 1, 0); // TODO
-    backLeft.set(2, 1, 0); // TODO
-
-    backRight.set(1, 1, 0); // TODO
-    backRight.set(2, 1, 0); // TODO
-
-    // scale by rotation value
-    frontLeft.times(theta);
-    frontRight.times(theta);
-    backLeft.times(theta);
-    backRight.times(theta);
-
-    frontLeft.plus(inputs);
-    frontRight.plus(inputs);
-    backLeft.plus(inputs);
-    backRight.plus(inputs);
-
-    List<Matrix<N2, N1>> vectors = new ArrayList<>(); // TODO
-    vectors.add(frontLeft);
-    vectors.add(frontRight);
-    vectors.add(backLeft);
-    vectors.add(backRight);
-
-    return vectors;
-  }
-
-  public List<Matrix<N2, N1>> normalize(List<Matrix<N2, N1>> vectors) {
-    List<Double> velocities = new ArrayList<>();
-    for (Matrix<N2, N1> vec : vectors) {
-      // extract velocities to separate list
-      velocities.add(vec.get(0, 0));
+    // field oriented vs robot oriented
+    if (fieldOriented) {
+      speeds = ChassisSpeeds.fromFieldRelativeSpeeds(
+        MathUtil.clamp(x, -MAX_X_SPEED, MAX_X_SPEED), 
+        MathUtil.clamp(y, -MAX_Y_SPEED, MAX_Y_SPEED), 
+        MathUtil.clamp(theta, -MAX_ROT_SPEED, MAX_ROT_SPEED), 
+        Rotation2d.fromDegrees(gyro.getAngle())
+      );
+    } else {
+      speeds = new ChassisSpeeds(
+        MathUtil.clamp(x, -MAX_X_SPEED, MAX_X_SPEED), 
+        MathUtil.clamp(y, -MAX_Y_SPEED, MAX_Y_SPEED), 
+        MathUtil.clamp(theta, -MAX_ROT_SPEED, MAX_ROT_SPEED)
+      );
     }
 
-    // find the max absolute value of velocity for all the wheels
-    double maxVel = Collections.max(
-      velocities
-      .stream()
-      .map(Math::abs)
-      .collect(Collectors.toList())
-    );
+    // convert chassis speeds to module states
+    SwerveModuleState[] states = kinematics.toSwerveModuleStates(speeds);
+    SwerveDriveKinematics.desaturateWheelSpeeds(states, 0); // TODO
 
-    if (maxVel > 1) {
-      // don't normalize if max value was within bounds already
-      velocities = 
-        velocities
-        .stream()
-        .map(v -> v / maxVel) // divide each by max
-        .collect(Collectors.toList()); // put back into list
-    }
-
-    List<Matrix<N2, N1>> normalizedVelocities = new ArrayList<>();
-    for (int i = 0; i < velocities.size(); i++) {
-      // put velocities back into matrices
-      var vector = vectors.get(i).copy();
-      vector.set(0, 0, velocities.get(i));
-
-      normalizedVelocities.add(vector);
-    }
-
-    return normalizedVelocities;
-  }
-
-  public List<Matrix<N2, N1>> optimize(List<Matrix<N2, N1>> prev, List<Matrix<N2, N1>> curr) {
-    List<Double> deltas = new ArrayList<>();
-    
-    // find deltas for all angles
-    for (int i = 0; i < prev.size(); i++) {
-      double prevAngle = prev.get(i).get(2, 1);
-      double currAngle = curr.get(i).get(2, 1);
-
-      double delta = currAngle - prevAngle;
-      deltas.add(delta);
-    }
-
-    
-
-    return new ArrayList<>();
+    // drive modules
+    frontLeft.set(states[0]);
+    frontRight.set(states[1]);
+    backLeft.set(states[2]);
+    backRight.set(states[3]);
   }
 
   @Override
   public void periodic() {
-    // This method will be called once per scheduler run
+    SwerveModuleState[] states = new SwerveModuleState[4]; // TODO
+    states[0] = frontLeft.state(); // front left
+    states[1] = frontRight.state(); // front right
+    states[2] = backLeft.state(); // back left
+    states[3] = backRight.state(); // back right
+
+    odometry.update(
+      Rotation2d.fromDegrees(gyro.getAngle()), 
+      states
+    );
+  }
+
+  @Override
+  public void initSendable(SendableBuilder builder) {
+    builder.addBooleanProperty("Field oriented", () -> this.fieldOriented, null);
   }
 }
