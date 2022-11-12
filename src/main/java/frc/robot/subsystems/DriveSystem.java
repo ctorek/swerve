@@ -4,26 +4,20 @@
 
 package frc.robot.subsystems;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import com.kauailabs.navx.frc.AHRS;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
-import edu.wpi.first.math.numbers.N1;
-import edu.wpi.first.math.numbers.N2;
 import edu.wpi.first.util.sendable.SendableBuilder;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
+import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import static frc.robot.Constants.*;
@@ -71,10 +65,10 @@ public class DriveSystem extends SubsystemBase {
     backRightRotate = new CANSparkMax(BACK_RIGHT_ROTATE, MotorType.kBrushless);
 
     // modules
-    frontLeft = new SwerveModule(frontLeftDrive, frontLeftRotate, "front left");
-    frontRight = new SwerveModule(frontRightDrive, frontRightRotate, "front right");
-    backLeft = new SwerveModule(backLeftDrive, backLeftRotate, "back left");
-    backRight = new SwerveModule(backRightDrive, backRightRotate, "back right");
+    frontLeft = new SwerveModule(frontLeftDrive, frontLeftRotate);
+    frontRight = new SwerveModule(frontRightDrive, frontRightRotate);
+    backLeft = new SwerveModule(backLeftDrive, backLeftRotate);
+    backRight = new SwerveModule(backRightDrive, backRightRotate);
     
     // gyro
     gyro = new AHRS();
@@ -90,6 +84,14 @@ public class DriveSystem extends SubsystemBase {
       kinematics, 
       Rotation2d.fromDegrees(gyro.getAngle())
     );
+
+    // dashboard stuff
+    ShuffleboardTab tab = Shuffleboard.getTab("Drive");
+    tab.add("Front left module", frontLeft);
+    tab.add("Front right module", frontRight);
+    tab.add("Back left module", backLeft);
+    tab.add("Back right module", backRight);
+    tab.add(this);
   }
 
   /**

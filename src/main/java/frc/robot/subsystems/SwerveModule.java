@@ -28,9 +28,7 @@ public class SwerveModule implements Sendable {
     private final SparkMaxPIDController drivePID;
     private final SparkMaxPIDController rotatePID;
 
-    private final String name;
-
-    public SwerveModule(CANSparkMax driveMotor, CANSparkMax rotateMotor, String name) {
+    public SwerveModule(CANSparkMax driveMotor, CANSparkMax rotateMotor) {
         this.driveMotor = driveMotor;
         this.rotateMotor = rotateMotor;
 
@@ -42,8 +40,6 @@ public class SwerveModule implements Sendable {
 
         drivePID.setSmartMotionMaxVelocity(1, 0); // TODO
         drivePID.setSmartMotionMaxAccel(1, 0);
-
-        this.name = name;
 
         // TODO: pid tuning
     }
@@ -103,7 +99,7 @@ public class SwerveModule implements Sendable {
 
     @Override
     public void initSendable(SendableBuilder builder) {
-        builder.setSmartDashboardType("Swerve module " + name);
+        builder.setSmartDashboardType("Swerve module");
 
         builder.addDoubleProperty("Current velocity", this::velocity, null);
         builder.addDoubleProperty("Current angle", this::angle, null);
