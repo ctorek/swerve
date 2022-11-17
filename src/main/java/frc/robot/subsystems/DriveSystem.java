@@ -16,8 +16,11 @@ import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.util.sendable.SendableBuilder;
+import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import static frc.robot.Constants.*;
@@ -107,22 +110,22 @@ public class DriveSystem extends SubsystemBase {
     // field oriented vs robot oriented
     if (fieldOriented) {
       speeds = ChassisSpeeds.fromFieldRelativeSpeeds(
-        MathUtil.clamp(x, -MAX_X_SPEED, MAX_X_SPEED), 
-        MathUtil.clamp(y, -MAX_Y_SPEED, MAX_Y_SPEED), 
+        MathUtil.clamp(x, -MAX_LINEAR_SPEED, MAX_LINEAR_SPEED), 
+        MathUtil.clamp(y, -MAX_LINEAR_SPEED, MAX_LINEAR_SPEED), 
         MathUtil.clamp(theta, -MAX_ROT_SPEED, MAX_ROT_SPEED), 
         Rotation2d.fromDegrees(gyro.getAngle())
       );
     } else {
       speeds = new ChassisSpeeds(
-        MathUtil.clamp(x, -MAX_X_SPEED, MAX_X_SPEED), 
-        MathUtil.clamp(y, -MAX_Y_SPEED, MAX_Y_SPEED), 
+        MathUtil.clamp(x, -MAX_LINEAR_SPEED, MAX_LINEAR_SPEED), 
+        MathUtil.clamp(y, -MAX_LINEAR_SPEED, MAX_LINEAR_SPEED), 
         MathUtil.clamp(theta, -MAX_ROT_SPEED, MAX_ROT_SPEED)
       );
     }
 
-    // convert chassis speeds to module states
+    // convert chassis speeds to modu le states
     SwerveModuleState[] states = kinematics.toSwerveModuleStates(speeds);
-    SwerveDriveKinematics.desaturateWheelSpeeds(states, 0); // TODO
+    SwerveDriveKinematics.desaturateWheelSpeeds(states, MAX_LINEAR_SPEED); // TODO
 
     // current module states
     SwerveModuleState[] currentStates = new SwerveModuleState[] {
@@ -143,6 +146,25 @@ public class DriveSystem extends SubsystemBase {
     frontRight.set(states[1]);
     backLeft.set(states[2]);
     backRight.set(states[3]);
+  }
+
+  /**
+   * command for driving with joysticks
+   * 
+   * @param joystick
+   * @return command
+   */
+  public Command driveWithJoystick(Joystick joystick) {
+    return new RunCommand(
+      () -> {
+        this.drive(
+          MathUtil.applyDeadband(joystick.getX(), 0.15), 
+          MathUtil.applyDeadband(joystick.getY(), 0.15), 
+          MathUtil.applyDeadband(joystick.getZ(), 0.15)
+        );
+      }, 
+      this
+    );
   }
 
   @Override

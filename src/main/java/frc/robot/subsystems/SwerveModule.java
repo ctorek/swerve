@@ -38,10 +38,37 @@ public class SwerveModule implements Sendable {
         drivePID = driveMotor.getPIDController();
         rotatePID = rotateMotor.getPIDController();
 
-        drivePID.setSmartMotionMaxVelocity(1, 0); // TODO
-        drivePID.setSmartMotionMaxAccel(1, 0);
+        drivePID.setSmartMotionMaxVelocity(
+            // m/s to rpm
+            MAX_LINEAR_SPEED * (60 / WHEEL_CIRCUMFERENCE), 
+            0
+        ); 
+        drivePID.setSmartMotionMaxAccel(
+            // m/s to rpm/s
+            MAX_LINEAR_ACCEL * (60 / WHEEL_CIRCUMFERENCE), 
+            0
+        );
 
-        // TODO: pid tuning
+        drivePID.setP(0.1);
+        drivePID.setI(0);
+        drivePID.setD(0);
+        drivePID.setFF(0);
+
+        rotatePID.setSmartMotionMaxVelocity(
+            // rad/s to rpm
+            MAX_ROT_SPEED * (60 / (2 * Math.PI)), 
+            0
+        );
+        rotatePID.setSmartMotionMaxAccel(
+            // rad/s^2 to rpm/s
+            MAX_ROT_ACCEL * (60 / (2 * Math.PI)), 
+            0
+        );
+
+        rotatePID.setP(0.1);
+        rotatePID.setI(0);
+        rotatePID.setD(0);
+        rotatePID.setFF(0);
     }
 
     /**

@@ -34,7 +34,16 @@ public final class Constants {
     public static final double WHEEL_CIRCUMFERENCE = 0;
 
     // Maximum speeds along each axis
-    public static final double MAX_X_SPEED = 2.0;
-    public static final double MAX_Y_SPEED = 2.0;
+
+    /** m/s */
+    public static final double MAX_LINEAR_SPEED = 2.0;
+
+    /** m/s^2 */
+    public static final double MAX_LINEAR_ACCEL = 1.0;
+
+    /** rad/s */
     public static final double MAX_ROT_SPEED = 1.0;
+
+    /** rad/s^2 */
+    public static final double MAX_ROT_ACCEL = 1.0;
 }
