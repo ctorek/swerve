@@ -19,8 +19,11 @@ import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
+import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import static frc.robot.Constants.*;
@@ -51,7 +54,7 @@ public class DriveSystem extends SubsystemBase {
   private final SwerveDriveKinematics kinematics;
   private final SwerveDriveOdometry odometry;
 
-  private boolean fieldOriented;
+  private boolean fieldOriented = false;
 
   /** Creates a new DriveSystem. */
   public DriveSystem() {
@@ -95,6 +98,12 @@ public class DriveSystem extends SubsystemBase {
     tab.add("Back left module", backLeft);
     tab.add("Back right module", backRight);
     tab.add(this);
+
+    SmartDashboard.putData(
+      "Drive/Reset Encoders", 
+      // sendable type beat
+      new SequentialCommandGroup(resetEncoders())
+    );
   }
 
   /**
@@ -167,6 +176,30 @@ public class DriveSystem extends SubsystemBase {
     );
   }
 
+  public Command drive(SwerveModuleState state) {
+    return new RunCommand(
+      () -> {
+        frontLeft.set(state);
+        frontRight.set(state);
+        backLeft.set(state);
+        backRight.set(state);
+      },
+      this
+    );
+  }
+
+  public Command resetEncoders() {
+    return new InstantCommand(
+      () -> {
+        frontLeft.resetEncoders();
+        frontRight.resetEncoders();
+        backLeft.resetEncoders();
+        backRight.resetEncoders();
+      }, 
+      this
+    );    
+  }
+
   @Override
   public void periodic() {
     SwerveModuleState[] states = new SwerveModuleState[4]; // TODO
@@ -185,5 +218,6 @@ public class DriveSystem extends SubsystemBase {
   public void initSendable(SendableBuilder builder) {
     builder.setSmartDashboardType("Drive System");
     builder.addBooleanProperty("Field oriented", () -> this.fieldOriented, null);
+    builder.addDoubleProperty("Gyro angle", gyro::getAngle, null);
   }
 }

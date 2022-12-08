@@ -31,7 +31,7 @@ public final class Constants {
     public static final double MODULE_DIST = Units.inchesToMeters(11.25);
 
     /** Circumference of module wheels */
-    public static final double WHEEL_CIRCUMFERENCE = 0;
+    public static final double WHEEL_CIRCUMFERENCE = Math.PI * Units.inchesToMeters(3);
 
     // Maximum speeds along each axis
 

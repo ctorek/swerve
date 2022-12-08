@@ -49,9 +49,9 @@ public class SwerveModule implements Sendable {
             0
         );
 
-        drivePID.setP(0.1);
+        drivePID.setP(0.075);
         drivePID.setI(0);
-        drivePID.setD(0);
+        drivePID.setD(0.075);
         drivePID.setFF(0);
 
         rotatePID.setSmartMotionMaxVelocity(
@@ -65,10 +65,13 @@ public class SwerveModule implements Sendable {
             0
         );
 
-        rotatePID.setP(0.1);
+        rotatePID.setP(0.0075);
         rotatePID.setI(0);
-        rotatePID.setD(0);
+        rotatePID.setD(0.01);
         rotatePID.setFF(0);
+
+        // gear ratio
+        rotateEncoder.setPositionConversionFactor(1.0/12.8);
     }
 
     /**
@@ -87,8 +90,13 @@ public class SwerveModule implements Sendable {
         rotatePID.setReference(angle, ControlType.kPosition);
     }
 
+    public void resetEncoders() {
+        driveEncoder.setPosition(0);
+        rotateEncoder.setPosition(0);
+    }
+
     /**
-     * @return current state of swerve modul
+     * @return current state of swerve module
      */
     public SwerveModuleState state() {
         return new SwerveModuleState(
@@ -128,8 +136,8 @@ public class SwerveModule implements Sendable {
     public void initSendable(SendableBuilder builder) {
         builder.setSmartDashboardType("Swerve module");
 
-        builder.addDoubleProperty("Current velocity", this::velocity, null);
-        builder.addDoubleProperty("Current angle", this::angle, null);
+        builder.addDoubleProperty("Current velocity (m per s)", this::velocity, null);
+        builder.addDoubleProperty("Current angle (deg)", () -> this.angle() * (180 / Math.PI), null);
         builder.addBooleanProperty("Module motors connected", this::connected, null);
     }
 }

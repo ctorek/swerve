@@ -4,6 +4,8 @@
 
 package frc.robot;
 
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.XboxController;
@@ -36,7 +38,13 @@ public class RobotContainer {
 
     // commands
     driveCmd = drive.driveWithJoystick(joystick);
-    drive.setDefaultCommand(driveCmd);
+    //drive.setDefaultCommand(driveCmd);
+
+    drive.setDefaultCommand(
+      drive.drive(
+        new SwerveModuleState(0.5, Rotation2d.fromDegrees(90))
+      )
+    );
 
     // Configure the button bindings
     configureButtonBindings();
